@@ -27,6 +27,13 @@ namespace topit {
         p_t next(p_t prev) const override;
         p_t d;
     };
+    struct Vline : IDraw {
+        explicit Vline(p_t start, int length);
+        p_t begin() const override;
+        p_t next(p_t prev) const override;
+        p_t start_point;
+        int len;
+    };
     void append(const IDraw* sh, p_t** ppts, size_t& s);
     f_t frame(const p_t* pts, size_t s);
     char* canvas(f_t fr, char fill);
@@ -37,14 +44,15 @@ namespace topit {
 int main() {
     using namespace topit;
     int err = 0;
-    IDraw* shp[3] = {};
+    IDraw* shp[4] = {};
     p_t* pts = nullptr;
     size_t s = 0;
     try {
         shp[0] = new Dot({ 0, 0 });
         shp[1] = new Dot({ 2, 3 });
         shp[2] = new Dot({ -6, -2 });
-        for (size_t i = 0; i < 3; ++i) {
+        shp[3] = new Vline({ -2, -4 }, 8);
+        for (size_t i = 0; i < 4; ++i) {
             append(shp[i], &pts, s);
         }
         f_t fr = frame(pts, s);
@@ -59,6 +67,7 @@ int main() {
         std::cerr << "Error!\n";
         err = 1;
     }
+    delete shp[3];
     delete shp[2];
     delete shp[1];
     delete shp[0];
@@ -172,3 +181,30 @@ size_t topit::cols(f_t fr)
     return fr.bb.x - fr.aa.x + 1;
 }
 
+topit::Vline::Vline(p_t start, int length) :
+    start_point(start),
+    len(length) {
+    if (len <= 0) {
+        throw std::logic_error("Length must be > 0");
+    }
+}
+
+topit::p_t topit::Vline::begin() const {
+    return start_point;
+}
+
+topit::p_t topit::Vline::next(p_t prev) const {
+    if (prev == start_point) {
+        if (len > 1) {
+            return { start_point.x, start_point.y + 1 };
+        }
+        return start_point;
+    }
+
+    int current_index = prev.y - start_point.y;
+    if (current_index < len - 1) {
+        return { prev.x, prev.y + 1 };
+    }
+
+    return start_point;
+}
