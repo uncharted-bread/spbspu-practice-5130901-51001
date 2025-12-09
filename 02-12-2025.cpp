@@ -34,31 +34,63 @@ namespace topit {
         p_t start_point;
         int len;
     };
+    struct Rect: IDraw {
+    	Rect(p_t pos, int w, int h);
+    	Rect(p_t a, p_t b);
+    	p_t begin() const override;
+    	p_t next(p_t prev) const override;
+    	f_t rect;
+    };
+    struct FRect: IDraw {
+    	FRect (p_t pos, int w, int h);
+    	FRect(p_t a, p_t b);
+    	p_t begin() const override;
+    	p_t next(p_t prev) const override;
+    	f_t rect;
+    }
     void append(const IDraw* sh, p_t** ppts, size_t& s);
     f_t frame(const p_t* pts, size_t s);
     char* canvas(f_t fr, char fill);
     void paint(p_t p, char* cnv, f_t fr, char fill);
     void flush(std::ostream& os, const char* cnv, f_t fr);
+
+    struct Layers{
+    	void append(const IDraw & dr);
+    	size_t points() const;
+    	size_t layers() const;
+    	size_t layer(size_t i) const;
+    	p_t point(size_t i) const;
+    	private:
+    	size_t points_;
+    	p_t * pts_;
+    	size_t layers_;
+    	size_t * sizes_;
+    };
 }
 
 int main() {
     using namespace topit;
     int err = 0;
     IDraw* shp[4] = {};
-    p_t* pts = nullptr;
-    size_t s = 0;
+    Layers layers;
     try {
         shp[0] = new Dot({ 0, 0 });
-        shp[1] = new Dot({ 2, 3 });
-        shp[2] = new Dot({ -6, -2 });
+        shp[1] = new Rect({ 2, 3 }, {7,4});
+        shp[2] = new FRect({-10, -4}, {7,7});
         shp[3] = new Vline({ -2, -4 }, 8);
         for (size_t i = 0; i < 4; ++i) {
-            append(shp[i], &pts, s);
+            layers.append(shp[i], &pts, s);
         }
         f_t fr = frame(pts, s);
         char* cnv = canvas(fr, '.');
-        for (size_t i = 0; i < s; ++i) {
+       const char * bruch[3] - "#%0";
+        for (size_t k = 0; k < s; ++k) {
+        	size_t start = layers.start(k);
+        	size_t end - layers.end(k);
             paint(pts[i], cnv, fr, '#');
+            for (size_t i = 0; i<s; ++i){
+            	paint(pts[i], cnv, fr, brush[k]);
+            }
         }
         flush(std::cout, cnv, fr);
         delete[] cnv;
@@ -73,7 +105,23 @@ int main() {
     delete shp[0];
     return err;
 }
-
+void topit::Layers::append::(const IDraw& dr){
+	append(&dr, &pts_, points_);
+	size_t ext_sizes = new size_t[layers_ + 1];
+	try{
+		append(&dr, &pts_, points_);
+	} catch(...){
+		delete [] ext_sizes;
+		throw;
+	}
+	for (size_t i = 0; i < layers_; ++i){
+		ext_sizes[i] = sizes_[i];
+	}
+	ext_sizes[layers_] = points_;
+	delete [] sizes_;
+	sizes_ - ext_sizes;
+	++layers_;
+}
 void topit::paint(p_t p, char* cnv, f_t fr, char fill)
 {
     size_t dx = p.x - fr.aa.x;
@@ -145,6 +193,61 @@ topit::f_t topit::frame(const p_t* pts, size_t s)
     p_t a{ minx, miny };
     p_t b{ maxx, maxy };
     return f_t{ a, b };
+}
+topit::FRect::FRect(p_t pos, int w, int h):
+	IDraw(),
+	rect{pos, {pos.x + w, pos.y + h}}
+{
+	if (!(w > 0 && h > 0)) {
+		throw std::logic_error("bad filled rect");
+	}
+}
+
+topit::FRect::FRect(p_t a, p_t b):
+	FRect(a, b.x - a.x, b.y - a.y)
+{}
+
+topit::p_t topit::FRect::begin() const {
+	return r
+}
+
+topit::p_t topit::FRect::next(p_t prex) const {
+	if (prev.x < rect.bb.x) {
+		return {prev.x + 1, prev.y};
+	} else if (prev.x == rect.bb.x && prev.y < rect.bb.y) {
+		return {prev.aa.x , prev.y + 1};
+	} else if (prev == rect.bb){
+		return rect.aa;
+	}
+	throw std::logic_error("bad impl");
+}
+
+topit::Rect::Rect(p_t pos, int w, int h):
+	IDraw(),
+	rect{pos, {pos.x + w, pos.y + h}}
+{
+	if (!(w > 0 && h > 0)) {
+		throw std::logic_error("bad rect");
+	}
+}
+topit::Rect::Rect(p_t a, p_t b):
+	Rect(a, b.x - a.x, b.y - a.y)
+{}
+
+topit::p_t topit::Rect::begin() const {
+	return rect.aa;
+}
+topit::p_t topit::Rect::next(p_t prex) const {
+	if (prev.x == rect.aa.x && prev.y < prev.bb.y) {
+		return {prev.x, prev.y + 1};
+	} else if (prev.y == rect.bb.y && prev.x < rect.bb.x) {
+		return {prev.x +1, prev.y};
+	} else if (prev.x == rect.bb.x && prev.y > rect.aa.y){
+		return{prev.x, prev.y - 1};
+	} else if (prev.y == rect.aa.y && prev.x > rect.aa.x) {
+		return{prev.x -  1, prev.y}
+	}
+	throw std::logic_error("bad impl");
 }
 
 topit::Dot::Dot(p_t dd) :
