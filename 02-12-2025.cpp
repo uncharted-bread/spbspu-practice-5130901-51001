@@ -37,19 +37,7 @@ namespace topit {
   void extend(p_t** pts, size_t& s, p_t fill);
   void append(const IDraw* sh, p_t** ppts, size_t& s);
   f_t frame(const p_t * pts, size_t s);
-  struct Layers;
-  f_t frame(const Layers& ls);
-  char * canvas(f_t fr, char fill);
-  void paint(p_t p, char* cnv, f_t fr, char fill);
-  void flush(std::ostream& os, const char* cnv, f_t fr);
-
-  struct Layers {
-    Layers();
-    ~Layers();
-    Layers(const Layers&) = delete;
-    Layers& operator=(const Layers&) = delete;
-    Layers(Layers&&) = delete;
-    Layers& operator=(Layers&&) = delete;
+  
 
     void append(const IDraw & dr);
     f_t frame() const {
@@ -110,33 +98,7 @@ int main() {
   delete shp[0];
   return err;
 }
-void topit::Layers::append(const IDraw& dr) {
-  size_t* ext_sizes = new size_t[layers_ + 1];
-  try {
-    topit::append(&dr, &pts_, points_);
-  } catch (...) {
-    delete [] ext_sizes;
-    throw;
-  }
-  for (size_t i = 0; i < layers_; ++i) {
-    ext_sizes[i] = sizes_[i];
-  }
-  ext_sizes[layers_] = points_;
-  delete [] sizes_;
-  sizes_ = ext_sizes;
-  ++layers_;
-}
-topit::Layers::Layers():
-  points_{0},
-  pts_{nullptr},
-  layers_{0},
-  sizes_{nullptr}
-{}
-topit::Layers::~Layers()
-{
-  delete [] pts_;
-  delete [] sizes_;
-}
+
 topit::p_t* topit::extend(const p_t* pts, size_t s, p_t fill) {
   p_t* r = new p_t[s + 1];
   for (size_t i = 0; i < s; ++i) {
@@ -158,27 +120,6 @@ void topit::append(const IDraw* sh, p_t** ppts, size_t& s) {
     b = sh->next(b);
     extend(ppts, s, b);
   }
-}
-void topit::paint(p_t p, char* cnv, f_t fr, char fill) {
-  size_t dx = p.x - fr.aa.x;
-  size_t dy = fr.bb.y - p.y;
-  cnv[dy * cols(fr) + dx] = fill;
-}
-void topit::flush(std::ostream& os, const char* cnv, f_t fr) {
-  for (size_t i = 0; i < rows(fr); ++i) {
-    for (size_t j = 0; j < cols(fr); ++j) {
-      os << cnv[i * cols(fr) + j];
-    }
-    os << "\n";
-  }
-}
-char * topit::canvas(f_t fr, char fill) {
-  size_t s = rows(fr) * cols(fr);
-  char * c = new char[s];
-  for (size_t i = 0; i < s; ++i) {
-    c[i] = fill;
-  }
-  return c;
 }
 topit::f_t topit::frame(const p_t* pts, size_t s) {
   int minx = pts[0].x, miny = pts[0].y;
